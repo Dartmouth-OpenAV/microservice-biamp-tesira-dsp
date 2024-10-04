@@ -149,7 +149,7 @@ func getVolume(socketKey string, instanceTag string, channel string) (string, er
 func getVolumeDo(socketKey string, instanceTag string, channel string) (string, error) {
 	function := "getVolumeDo"
 
-	connected := framework.ConnectionsMapExists(socketKey)
+	connected := framework.CheckConnectionsMapExists(socketKey)
 	if !connected{
 		negotiation := loginNegotiation(socketKey)
 		if !negotiation {
@@ -264,7 +264,7 @@ func getVoiceLift(socketKey string, instanceTag string, channel string) (string,
 func getMuteToggleDo(socketKey string, instanceTag string, channel string) (string, error) {
 	function := "getMuteToggleDo"
 
-	connected := framework.ConnectionsMapExists(socketKey)
+	connected := framework.CheckConnectionsMapExists(socketKey)
 	if !connected {
 		negotiation := loginNegotiation(socketKey)
 		if !negotiation {
@@ -391,7 +391,7 @@ func getAudioMode(socketKey string, instanceTag string) (string, error) {
 func getStateToggleDo(socketKey string, instanceTag string, channel string) (string, error) {
 	function := "getStateToggleDo"
 
-	connected := framework.ConnectionsMapExists(socketKey)
+	connected := framework.CheckConnectionsMapExists(socketKey)
 	if !connected {
 		negotiation := loginNegotiation(socketKey)
 		if !negotiation {
@@ -475,7 +475,7 @@ func setVolumeDo(socketKey string, instanceTag string, channel string, volume st
 	function := "setVolumeDo"
 	volume = strings.Trim(volume, "\"")
 
-	connected := framework.ConnectionsMapExists(socketKey)
+	connected := framework.CheckConnectionsMapExists(socketKey)
 	if !connected {
 		negotiation := loginNegotiation(socketKey)
 		if !negotiation {
@@ -585,7 +585,7 @@ func setVoiceLift(socketKey string, instanceTag string, channel string, state st
 func setMuteToggleDo(socketKey string, instanceTag string, channel string, state string) (string, error) {
 	function := "setMuteToggleDo"
 	state = strings.Trim(state, "\"")
-	connected := framework.ConnectionsMapExists(socketKey)
+	connected := framework.CheckConnectionsMapExists(socketKey)
 	if !connected {
 		negotiation := loginNegotiation(socketKey)
 		if !negotiation {
@@ -658,7 +658,7 @@ func setPreset(socketKey string, presetID string) (string, error) {
 func setPresetDo(socketKey string, presetID string) (string, error) {
 	function := "setPresetDo"
 
-	connected := framework.ConnectionsMapExists(socketKey)
+	connected := framework.CheckConnectionsMapExists(socketKey)
 	if !connected {
 		negotiation := loginNegotiation(socketKey)
 		if !negotiation {
@@ -757,7 +757,7 @@ func setAudioMode(socketKey string, instanceTag string, channel string) (string,
 func setStateToggleDo(socketKey string, instanceTag string, channel string, state string) (string, error) {
 	function := "setStateToggleDo"
 	state = strings.Trim(state, "\"")
-	connected := framework.ConnectionsMapExists(socketKey)
+	connected := framework.CheckConnectionsMapExists(socketKey)
 	if !connected {
 		negotiation := loginNegotiation(socketKey)
 		if !negotiation {
