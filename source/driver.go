@@ -29,18 +29,18 @@ func convertAndSend(socketKey string, cmdStr string) bool {
 	return sent
 }
 // Reads a response from the DSP
-func readAndConvert(socketKey string) (string, string, error) {
+func readAndConvert(socketKey string) (string, error) {
 	function := "readAndConvert"
 	resp := framework.ReadLineFromSocket(socketKey)
 
 	// Normally, there is an acknowledgement response or error message.
 	if resp == "" {
-		errMsg := function + " - k3kxlpo - Response was blank."
+		errMsg := function + " - k3kxlpo - response was blank"
 		framework.AddToErrors(socketKey, errMsg)
-		return "", errMsg, errors.New(errMsg)
+		return "unknown", errors.New(errMsg)
 	}
 
-	return resp, "", nil
+	return resp, nil
 }
 // Handles the Telnet negotiation for the Tesira connection
 func loginNegotiation(socketKey string) bool {
@@ -52,19 +52,19 @@ func loginNegotiation(socketKey string) bool {
 	for count < 7 {
 		count += 1
 		negotiationMsg := ""
-		negotiationResp, errMsg, err := readAndConvert(socketKey)
-		if err != nil {
-			framework.AddToErrors(socketKey, errMsg)
-		}
+		negotiationResp, _ := readAndConvert(socketKey)
 		respHex := fmt.Sprintf("%x", negotiationResp)
-		framework.Log("Printing Negotiation from Biamp: " + respHex)
+
 		if negotiationResp == "Welcome to the Tesira Text Protocol Server..." {
 			negotiationMsg = ""
 			welcomeMsg = true
-		} else if negotiationResp == "" && welcomeMsg == true {
+			// Sometimes, the biamp sends more negotiation messages after welcome so not returning here
+		} else if negotiationResp == "unknown" && welcomeMsg {
 			framework.Log("Negotiations are over")
 			return true
 		} else {
+			framework.Log("Printing Negotiation from Biamp: " + respHex)
+			// Rejecting all negotiations
 			negotiationMsg = strings.Replace(respHex, "fd", "fc", -1)
 			negotiationMsg = strings.Replace(negotiationMsg, "fb", "fe", -1)
 		}
@@ -79,6 +79,82 @@ func loginNegotiation(socketKey string) bool {
 	framework.AddToErrors(socketKey, errMsg)
 
 	return false
+}
+// Sends a command and checks that the response is valid. Otherwise, tries reading again.
+func sendAndValidateResponse(socketKey string, cmdStr string, cmdType string, respType string) (string, error) {
+	// Send the command. Return if there is an error.
+	sent := convertAndSend(socketKey, cmdStr)
+	if !sent {
+		errMsg := "in34kf - unable to send command"
+		return "unknown", errors.New(errMsg)
+	}
+
+	// Try to read at most 5 times if the response is not what is expected.
+	// The DSP might respond with an echo or a response for a different command.
+	maxRetries := 5
+	validResponse := false
+	var resp string
+	var err error
+
+	for maxRetries > 0 {
+		resp, err = readAndConvert(socketKey)
+		if err != nil {
+			return resp, err
+		}
+
+		// Checking if the response is an echo of the sent command or an error
+		if strings.TrimSpace(resp) == strings.TrimSpace(cmdStr) {
+			framework.Log("Got an echo. Reading again")
+			maxRetries--
+			continue
+		}
+		if strings.HasPrefix(resp, "-ERR") {
+			errMsg := fmt.Sprintf("gkr5jdi - Read error: " + resp)
+			err = errors.New(errMsg)
+			return resp, err
+		}
+
+		// Checking that the response matches what is expected for the cmdType and respType
+		// For example, a volume query should return a number and a command should return +OK.
+		if cmdType == "query" {
+			_, value, found := strings.Cut(resp, "\"value\":")
+			if found {
+				if respType == "number" {
+					// Valid if the response can be converted to a number
+					_, err := strconv.ParseFloat(value, 32)
+					if err == nil {
+						resp = value
+						validResponse = true
+						break
+					}
+				} else if respType == "state" {
+					// Valid if the response is true or false
+					if value == "true" || value == "false" {
+						resp = value
+						validResponse = true
+						break
+					}
+				}
+			}
+		} else if cmdType == "command" {
+			// The response to a command should just be an acknowledgement of +OK
+			if strings.HasPrefix(resp, "+OK") {
+				validResponse = true
+				break
+			}
+		}
+		framework.Log("Resp did not match what was expected. Reading again")
+		maxRetries--
+	}
+
+	// Check if the for loop broke successfully or unsuccessfully
+	if validResponse {
+		return resp, err
+	} else {
+		errMsg := "tried to read 5 times. no valid response from the biamp"
+		err = errors.New(errMsg)
+		return "unknown", err
+	}
 }
 // Takes value from the range 0-100 and transforms it to the range the Biamp uses (-100 - +12).
 func transformVolume (vol string) string {
@@ -161,49 +237,18 @@ func getVolumeDo(socketKey string, instanceTag string, channel string) (string, 
 
 	cmdString := instanceTag + " get level " + channel + "\r"
 
-	sent := convertAndSend(socketKey, cmdString)
+	value, err := sendAndValidateResponse(socketKey, cmdString, "query", "number")
 
-	if !sent {
-		errMsg := fmt.Sprintf(function + " - dj3dke - error sending command")
-		framework.AddToErrors(socketKey, errMsg)
-		return errMsg, errors.New(errMsg)
+	if err != nil {
+		return value, err 
 	}
 
-	respArr, errMsg, err := readAndConvert(socketKey)
+	normalizedVolume := unTransformVolume(value)
 
-	if err != nil{
-		return errMsg, err
-	}
-
-	if strings.HasPrefix(respArr, "+OK"){
-		framework.Log("No error")
-	} else if strings.HasPrefix(respArr, "-ERR"){
-		errMsg := fmt.Sprintf(function + " - gkr5jdi - Error: " + respArr)
-		framework.AddToErrors(socketKey, errMsg)
-		return errMsg, errors.New(errMsg)
-	} else if strings.HasPrefix(respArr, instanceTag + " get level " + channel){
-		framework.Log("GOT AN ECHO")
-		respArr, errMsg, err = readAndConvert(socketKey)
-	} else {
-		errMsg := fmt.Sprintf(function + " - kcj3j - error sending command")
-		framework.AddToErrors(socketKey, errMsg)
-		return errMsg, errors.New(errMsg)
-	}
-
-	_, value, found := strings.Cut(respArr, "\"value\":")
-	if !found {
-		errMsg := fmt.Sprintf(function + " - kcj3j - error reading response")
-		framework.AddToErrors(socketKey, errMsg)
-		return errMsg, errors.New(errMsg)
-	}
-
-	normalizedVol := unTransformVolume(value)
-	value = normalizedVol
-
-	framework.Log(function + " - Decoded Response: "+ value)
+	framework.Log(function + " - Decoded Response: "+ normalizedVolume)
 
 	// If we got here, the response was good, so successful return with the state indication
-	return `"` + value + `"`, nil
+	return `"` + normalizedVolume + `"`, nil
 }
 // Returns true if the channel is muted. False if it is not muted.
 func getAudioMute(socketKey string, instanceTag string, channel string) (string, error) {
@@ -276,40 +321,10 @@ func getMuteToggleDo(socketKey string, instanceTag string, channel string) (stri
 
 	cmdString := instanceTag + " get mute " + channel + "\r"
 
-	sent := convertAndSend(socketKey, cmdString)
+	value, err := sendAndValidateResponse(socketKey, cmdString, "query", "state")
 
-	if !sent {
-		errMsg := fmt.Sprintf(function + " - i5kcfoe - error sending command")
-		framework.AddToErrors(socketKey, errMsg)
-		return errMsg, errors.New(errMsg)
-	}
-
-	respArr, errMsg, err := readAndConvert(socketKey)
-
-	if err != nil{
-		return errMsg, err
-	}
-
-	if strings.HasPrefix(respArr, "+OK"){
-		framework.Log("No error")
-	} else if strings.HasPrefix(respArr, "-ERR"){
-		errMsg := fmt.Sprintf(function + " - estg74 - Error: " + respArr)
-		framework.AddToErrors(socketKey, errMsg)
-		return errMsg, errors.New(errMsg)
-	} else if strings.HasPrefix(respArr, instanceTag + " get mute " + channel){
-		framework.Log("GOT AN ECHO")
-		respArr, errMsg, err = readAndConvert(socketKey)
-	} else {
-		errMsg := fmt.Sprintf(function + " - j5jcu - Not a standard response")
-		framework.AddToErrors(socketKey, errMsg)
-		return errMsg, errors.New(errMsg)
-	}
-
-	_, value, found := strings.Cut(respArr, "\"value\":")
-	if !found {
-		errMsg := fmt.Sprintf(function + " - 2jxi4 - Could not get value from response")
-		framework.AddToErrors(socketKey, errMsg)
-		return errMsg, errors.New(errMsg)
+	if err != nil {
+		return value, err
 	}
 	
 	framework.Log(function + " - Decoded Response: "+ value)
@@ -403,40 +418,10 @@ func getStateToggleDo(socketKey string, instanceTag string, channel string) (str
 
 	cmdString := instanceTag + " get state " + channel + "\r"
 
-	sent := convertAndSend(socketKey, cmdString)
+	value, err := sendAndValidateResponse(socketKey, cmdString, "query", "state")
 
-	if !sent {
-		errMsg := fmt.Sprintf(function + " - y2hgdh - error sending command")
-		framework.AddToErrors(socketKey, errMsg)
-		return errMsg, errors.New(errMsg)
-	}
-
-	respArr, errMsg, err := readAndConvert(socketKey)
-
-	if err != nil{
-		return errMsg, err
-	}
-
-	if strings.HasPrefix(respArr, "+OK"){
-		framework.Log("No error")
-	} else if strings.HasPrefix(respArr, "-ERR"){
-		errMsg := fmt.Sprintf(function + " - i3jdieo - Error: " + respArr)
-		framework.AddToErrors(socketKey, errMsg)
-		return errMsg, errors.New(errMsg)
-	} else if strings.HasPrefix(respArr, instanceTag + " get state " + channel){
-		framework.Log("GOT AN ECHO")
-		respArr, errMsg, err = readAndConvert(socketKey)
-	} else {
-		errMsg := fmt.Sprintf(function + " - h4hxi - Not a standard response")
-		framework.AddToErrors(socketKey, errMsg)
-		return errMsg, errors.New(errMsg)
-	}
-
-	_, value, found := strings.Cut(respArr, "\"value\":")
-	if !found {
-		errMsg := fmt.Sprintf(function + " - i3usho4 - Could not get value from response")
-		framework.AddToErrors(socketKey, errMsg)
-		return errMsg, errors.New(errMsg)
+	if err != nil {
+		return value, err
 	}
 	
 	framework.Log(function + " - Decoded Response: "+ value)
@@ -490,36 +475,13 @@ func setVolumeDo(socketKey string, instanceTag string, channel string, volume st
 
 	cmdString := instanceTag + " set level " + channel + " " + transformedVol + "\r"
 
-	sent := convertAndSend(socketKey, cmdString)
+	value, err := sendAndValidateResponse(socketKey, cmdString, "command", "none")
 
-	if !sent {
-		errMsg := fmt.Sprintf(function + " - i5kcfoe - error sending command")
-		framework.AddToErrors(socketKey, errMsg)
-		return errMsg, errors.New(errMsg)
-	}
-
-	respArr, errMsg, err := readAndConvert(socketKey)
-
-	if err != nil{
-		return errMsg, err
-	}
-
-	if strings.HasPrefix(respArr, "+OK"){
-		framework.Log("No error")
-	} else if strings.HasPrefix(respArr, "-ERR"){
-		errMsg := fmt.Sprintf(function + " - uygv8 - Error: " + respArr)
-		framework.AddToErrors(socketKey, errMsg)
-		return errMsg, errors.New(errMsg)
-	} else if strings.HasPrefix(respArr, instanceTag + " set level " + channel + " " + transformedVol) {
-		framework.Log("GOT AN ECHO")
-		readAndConvert(socketKey)
-	} else {
-		errMsg := fmt.Sprintf(function + " - j5jcu - Not a standard response")
-		framework.AddToErrors(socketKey, errMsg)
-		return errMsg, errors.New(errMsg)
+	if err != nil {
+		return value, err
 	}
 	
-	framework.Log(function + " - Decoded Response: "+ respArr)
+	framework.Log(function + " - Decoded Response: "+ value)
 
 	// If we got here, the response was good, so successful return with the state indication
 	return "ok", nil
@@ -597,36 +559,13 @@ func setMuteToggleDo(socketKey string, instanceTag string, channel string, state
 
 	cmdString := instanceTag + " set mute " + channel + " " + state + "\r"
 
-	sent := convertAndSend(socketKey, cmdString)
+	value, err := sendAndValidateResponse(socketKey, cmdString, "command", "none")
 
-	if !sent {
-		errMsg := fmt.Sprintf(function + " - i5kcfoe - error sending command")
-		framework.AddToErrors(socketKey, errMsg)
-		return errMsg, errors.New(errMsg)
-	}
-
-	respArr, errMsg, err := readAndConvert(socketKey)
-
-	if err != nil{
-		return errMsg, err
-	}
-
-	if strings.HasPrefix(respArr, "+OK"){
-		framework.Log("No error")
-	} else if strings.HasPrefix(respArr, "-ERR"){
-		errMsg := fmt.Sprintf(function + " - uiub8 - Error: " + respArr)
-		framework.AddToErrors(socketKey, errMsg)
-		return errMsg, errors.New(errMsg)
-	} else if strings.HasPrefix(respArr, instanceTag + " set mute " + channel + " " + state) {
-		framework.Log("GOT AN ECHO")
-		readAndConvert(socketKey)
-	} else {
-		errMsg := fmt.Sprintf(function + " - j5jcu - Not a standard response")
-		framework.AddToErrors(socketKey, errMsg)
-		return errMsg, errors.New(errMsg)
+	if err != nil {
+		return value, err
 	}
 	
-	framework.Log(function + " - Decoded Response: "+ respArr)
+	framework.Log(function + " - Decoded Response: "+ value)
 
 	// If we got here, the response was good, so successful return with the state indication
 	return "ok", nil
@@ -670,36 +609,13 @@ func setPresetDo(socketKey string, presetID string) (string, error) {
 
 	cmdString := "DEVICE recallPreset " + presetID + "\r"
 
-	sent := convertAndSend(socketKey, cmdString)
+	value, err := sendAndValidateResponse(socketKey, cmdString, "command", "none")
 
-	if !sent {
-		errMsg := fmt.Sprintf(function + " - i5kcfoe - error sending command")
-		framework.AddToErrors(socketKey, errMsg)
-		return errMsg, errors.New(errMsg)
-	}
-
-	respArr, errMsg, err := readAndConvert(socketKey)
-
-	if err != nil{
-		return errMsg, err
-	}
-
-	if strings.HasPrefix(respArr, "+OK"){
-		framework.Log("No error")
-	} else if strings.HasPrefix(respArr, "-ERR"){
-		errMsg := fmt.Sprintf(function + " - kgy7bh - Error: " + respArr)
-		framework.AddToErrors(socketKey, errMsg)
-		return errMsg, errors.New(errMsg)
-	} else if strings.HasPrefix(respArr, "DEVICE recallPreset " + presetID) {
-		framework.Log("GOT AN ECHO")
-		readAndConvert(socketKey)
-	} else {
-		errMsg := fmt.Sprintf(function + " - j5jcu - Not a standard response")
-		framework.AddToErrors(socketKey, errMsg)
-		return errMsg, errors.New(errMsg)
+	if err != nil {
+		return value, err
 	}
 	
-	framework.Log(function + " - Decoded Response: "+ respArr)
+	framework.Log(function + " - Decoded Response: "+ value)
 
 	// If we got here, the response was good, so successful return with the state indication
 	return "ok", nil
@@ -769,36 +685,13 @@ func setStateToggleDo(socketKey string, instanceTag string, channel string, stat
 
 	cmdString := instanceTag + " set state " + channel + " " + state + "\r"
 
-	sent := convertAndSend(socketKey, cmdString)
+	value, err := sendAndValidateResponse(socketKey, cmdString, "command", "none")
 
-	if !sent {
-		errMsg := fmt.Sprintf(function + " - 95nckx - error sending command")
-		framework.AddToErrors(socketKey, errMsg)
-		return errMsg, errors.New(errMsg)
-	}
-
-	respArr, errMsg, err := readAndConvert(socketKey)
-
-	if err != nil{
-		return errMsg, err
-	}
-
-	if strings.HasPrefix(respArr, "+OK"){
-		framework.Log("No error")
-	} else if strings.HasPrefix(respArr, "-ERR"){
-		errMsg := fmt.Sprintf(function + " - k3k2md - Error: " + respArr)
-		framework.AddToErrors(socketKey, errMsg)
-		return errMsg, errors.New(errMsg)
-	} else if strings.HasPrefix(respArr, instanceTag + " set state " + channel + " " + state) {
-		framework.Log("GOT AN ECHO")
-		readAndConvert(socketKey)
-	} else {
-		errMsg := fmt.Sprintf(function + " - kfci4kd - Not a standard response")
-		framework.AddToErrors(socketKey, errMsg)
-		return errMsg, errors.New(errMsg)
+	if err != nil {
+		return value, err
 	}
 	
-	framework.Log(function + " - Decoded Response: "+ respArr)
+	framework.Log(function + " - Decoded Response: "+ value)
 
 	// If we got here, the response was good, so successful return with the state indication
 	return "ok", nil
