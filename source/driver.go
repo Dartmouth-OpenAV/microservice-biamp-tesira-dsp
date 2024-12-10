@@ -62,6 +62,9 @@ func loginNegotiation(socketKey string) bool {
 		} else if negotiationResp == "unknown" && welcomeMsg {
 			framework.Log("Negotiations are over")
 			return true
+		} else if negotiationResp == "unknown" && !welcomeMsg {
+			framework.Log("Ending negotiations. No response from the DSP.")
+			return false
 		} else {
 			framework.Log("Printing Negotiation from Biamp: " + respHex)
 			// Rejecting all negotiations
