@@ -1,0 +1,287 @@
+{
+	"info": {
+		"_postman_id": "3780e80d-8e00-4dcd-87df-21e8dd17c0de",
+		"name": "Biamp Microservice",
+		"description": "A collection of all possible GET and PUT calls for the Biamp microservice. You can replace the values in double curly brackets manually or create matching environment variables that will automatically fill in the values.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "26997154"
+	},
+	"item": [
+		{
+			"name": "GET Volume",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://{{microserviceURL}}/{{deviceFQDN}}/volume/{{instanceTag}}/1",
+					"protocol": "http",
+					"host": [
+						"{{microserviceURL}}"
+					],
+					"path": [
+						"{{deviceFQDN}}",
+						"volume",
+						"{{instanceTag}}",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GET Audiomute",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://{{microserviceURL}}/{{deviceFQDN}}/audiomute/{{instanceTag}}/1",
+					"protocol": "http",
+					"host": [
+						"{{microserviceURL}}"
+					],
+					"path": [
+						"{{deviceFQDN}}",
+						"audiomute",
+						"{{instanceTag}}",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GET Voicelift",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://{{microserviceURL}}/{{deviceFQDN}}/voicelift",
+					"protocol": "http",
+					"host": [
+						"{{microserviceURL}}"
+					],
+					"path": [
+						"{{deviceFQDN}}",
+						"voicelift"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GET Logicselector",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://{{microserviceURL}}/{{deviceFQDN}}/logicselector/{{instanceTag}}",
+					"protocol": "http",
+					"host": [
+						"{{microserviceURL}}"
+					],
+					"path": [
+						"{{deviceFQDN}}",
+						"logicselector",
+						"{{instanceTag}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GET Audiomode",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://{{microserviceURL}}/{{deviceFQDN}}/audiomode/{{instanceTag}}",
+					"protocol": "http",
+					"host": [
+						"{{microserviceURL}}"
+					],
+					"path": [
+						"{{deviceFQDN}}",
+						"audiomode",
+						"{{instanceTag}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "SET Volume",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "\"25\"",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{microserviceURL}}/{{deviceFQDN}}/volume/{{instanceTag}}/1",
+					"protocol": "http",
+					"host": [
+						"{{microserviceURL}}"
+					],
+					"path": [
+						"{{deviceFQDN}}",
+						"volume",
+						"{{instanceTag}}",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "SET Audiomute",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "\"true\"",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{microserviceURL}}/{{deviceFQDN}}/audiomute/{{instanceTag}}/1",
+					"protocol": "http",
+					"host": [
+						"{{microserviceURL}}"
+					],
+					"path": [
+						"{{deviceFQDN}}",
+						"audiomute",
+						"{{instanceTag}}",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "SET Preset",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{microserviceURL}}/{{deviceFQDN}}/preset/{{presetID}}",
+					"protocol": "http",
+					"host": [
+						"{{microserviceURL}}"
+					],
+					"path": [
+						"{{deviceFQDN}}",
+						"preset",
+						"{{presetID}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "SET Voicelift",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "\"true\"",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{microserviceURL}}/{{deviceFQDN}}/voicelift",
+					"protocol": "http",
+					"host": [
+						"{{microserviceURL}}"
+					],
+					"path": [
+						"{{deviceFQDN}}",
+						"voicelift"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "SET Logicselector",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "\"1\"",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{microserviceURL}}/{{deviceFQDN}}/logicselector/{{instanceTag}}",
+					"protocol": "http",
+					"host": [
+						"{{microserviceURL}}"
+					],
+					"path": [
+						"{{deviceFQDN}}",
+						"logicselector",
+						"{{instanceTag}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "SET Audiomode",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "\"1\"",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{microserviceURL}}/{{deviceFQDN}}/audiomode/{{instanceTag}}",
+					"protocol": "http",
+					"host": [
+						"{{microserviceURL}}"
+					],
+					"path": [
+						"{{deviceFQDN}}",
+						"audiomode",
+						"{{instanceTag}}"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
