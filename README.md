@@ -6,5 +6,7 @@ The Biamp Tesira DSP is an audio amplifier and audio switcher that utilizes Dant
 
 [TesiraFORTÉ DAN CI](https://products.biamp.com/product-details/-/o/ecom-item/911.0447.900/category/FE2B76B5-8575-4F44-87A5-740FA868662F%7C1FA10A0F-C874-4DCD-B041-3833A8B78ABC%7C204E989F-7D8B-4FB6-9BDD-C5B7739EBB65)
 
+[Microservice curl test documentation](https://github.com/Dartmouth-OpenAV/documentation/blob/main/curl_test_readme.md)
+
 ![](https://github.com/Dartmouth-OpenAV/microservice-biamp-tesira-dsp/blob/main/front.png?raw=true)
 ![](https://github.com/Dartmouth-OpenAV/microservice-biamp-tesira-dsp/blob/main/rear.png?raw=true)
