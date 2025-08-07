@@ -4,16 +4,17 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math"
+	"strconv"
 	"strings"
 	"time"
-	"strconv"
-	"math"
+
 	"github.com/Dartmouth-OpenAV/microservice-framework/framework"
 )
 
 // GLOBAL VARIABLES
 
-// Sends the command to the DSP. 
+// Sends the command to the DSP.
 func convertAndSend(socketKey string, cmdStr string) bool {
 	function := "convertAndSend"
 
@@ -28,6 +29,7 @@ func convertAndSend(socketKey string, cmdStr string) bool {
 
 	return sent
 }
+
 // Reads a response from the DSP
 func readAndConvert(socketKey string) (string, error) {
 	function := "readAndConvert"
@@ -42,6 +44,7 @@ func readAndConvert(socketKey string) (string, error) {
 
 	return resp, nil
 }
+
 // Handles the Telnet negotiation for the Tesira connection
 func loginNegotiation(socketKey string) bool {
 	function := "loginNegotiation"
@@ -83,6 +86,7 @@ func loginNegotiation(socketKey string) bool {
 
 	return false
 }
+
 // Sends a command and checks that the response is valid. Otherwise, tries reading again.
 func sendAndValidateResponse(socketKey string, cmdStr string, cmdType string, respType string) (string, error) {
 	// Send the command. Return if there is an error.
@@ -159,8 +163,9 @@ func sendAndValidateResponse(socketKey string, cmdStr string, cmdType string, re
 		return "unknown", err
 	}
 }
+
 // Takes value from the range 0-100 and transforms it to the range the Biamp uses (-100 - +12).
-func transformVolume (vol string) string {
+func transformVolume(vol string) string {
 	function := "transformVolume"
 	floatVol, err := strconv.ParseFloat(vol, 32)
 	if err != nil {
@@ -172,15 +177,16 @@ func transformVolume (vol string) string {
 		floatVol = 0.369786371648
 	}
 	// convert loudness (volume) to decibels
-	floatVol = 20.0*(math.Log(floatVol/100.0))+12.0
+	floatVol = 20.0*(math.Log(floatVol/100.0)) + 12.0
 	// converts the float to a string
 	stringVol := strconv.FormatFloat(floatVol, 'f', 1, 32)
 	framework.Log(stringVol)
 
 	return stringVol
 }
+
 // Takes value from the Biamp and transforms it to the range 0-100 for the GUI.
-func unTransformVolume (vol string) string {
+func unTransformVolume(vol string) string {
 	function := "unTransformVolume"
 	floatVol, err := strconv.ParseFloat(vol, 32)
 
@@ -189,7 +195,7 @@ func unTransformVolume (vol string) string {
 		return errMsg
 	}
 	// convert decibels to loudness (volume)
-	floatVol = math.Exp((floatVol-12.0)/20.0)*100.0
+	floatVol = math.Exp((floatVol-12.0)/20.0) * 100.0
 	// converts the float to a string
 	stringVol := strconv.FormatFloat(floatVol, 'f', 0, 32)
 	framework.Log(stringVol)
@@ -224,12 +230,13 @@ func getVolume(socketKey string, instanceTag string, channel string) (string, er
 
 	return value, err
 }
+
 // Gets the volume level of the specified instance tag and channel. Returns a value between 0 and 100.
 func getVolumeDo(socketKey string, instanceTag string, channel string) (string, error) {
 	function := "getVolumeDo"
 
 	connected := framework.CheckConnectionsMapExists(socketKey)
-	if !connected{
+	if !connected {
 		negotiation := loginNegotiation(socketKey)
 		if !negotiation {
 			errMsg := fmt.Sprintf(function + " - h3okxu3 - error connecting")
@@ -243,16 +250,17 @@ func getVolumeDo(socketKey string, instanceTag string, channel string) (string, 
 	value, err := sendAndValidateResponse(socketKey, cmdString, "query", "number")
 
 	if err != nil {
-		return value, err 
+		return value, err
 	}
 
 	normalizedVolume := unTransformVolume(value)
 
-	framework.Log(function + " - Decoded Response: "+ normalizedVolume)
+	framework.Log(function + " - Decoded Response: " + normalizedVolume)
 
 	// If we got here, the response was good, so successful return with the state indication
 	return `"` + normalizedVolume + `"`, nil
 }
+
 // Returns true if the channel is muted. False if it is not muted.
 func getAudioMute(socketKey string, instanceTag string, channel string) (string, error) {
 	function := "getAudioMute"
@@ -277,6 +285,7 @@ func getAudioMute(socketKey string, instanceTag string, channel string) (string,
 
 	return value, err
 }
+
 // Returns true if Voice Lift is on, false if Voice Lift is off
 func getVoiceLift(socketKey string, instanceTag string, channel string) (string, error) {
 	function := "getVoiceLift"
@@ -308,6 +317,7 @@ func getVoiceLift(socketKey string, instanceTag string, channel string) (string,
 
 	return value, err
 }
+
 // Gets the mute status of the specified instance tag and channel. Returns true or false.
 func getMuteToggleDo(socketKey string, instanceTag string, channel string) (string, error) {
 	function := "getMuteToggleDo"
@@ -329,12 +339,13 @@ func getMuteToggleDo(socketKey string, instanceTag string, channel string) (stri
 	if err != nil {
 		return value, err
 	}
-	
-	framework.Log(function + " - Decoded Response: "+ value)
+
+	framework.Log(function + " - Decoded Response: " + value)
 
 	// If we got here, the response was good, so successful return with the state indication
-	return `"`+ value + `"`, nil
+	return `"` + value + `"`, nil
 }
+
 // Returns true if Logic Selector is true, false if Logic Selector is false
 func getLogicSelector(socketKey string, instanceTag string, channel string) (string, error) {
 	function := "getLogicSelector"
@@ -359,6 +370,7 @@ func getLogicSelector(socketKey string, instanceTag string, channel string) (str
 
 	return value, err
 }
+
 // Returns the channel number that is set to true
 func getAudioMode(socketKey string, instanceTag string) (string, error) {
 	function := "getAudioMode"
@@ -384,7 +396,7 @@ func getAudioMode(socketKey string, instanceTag string) (string, error) {
 					break
 				}
 			} else { // Got a response
-				// If one channel is true, return 
+				// If one channel is true, return
 				if value == "\"true\"" {
 					maxRetries = 0
 					break
@@ -399,12 +411,13 @@ func getAudioMode(socketKey string, instanceTag string) (string, error) {
 	}
 
 	// If the for loop broke with a channel returning true, return the channel number
-	if value == "\"true\""{
-		return `"`+strconv.Itoa(channel)+`"`, err
+	if value == "\"true\"" {
+		return `"` + strconv.Itoa(channel) + `"`, err
 	} else {
 		return `"unknown"`, err
 	}
 }
+
 // Gets the state of the specified instance tag and channel. Returns true or false.
 func getStateToggleDo(socketKey string, instanceTag string, channel string) (string, error) {
 	function := "getStateToggleDo"
@@ -426,11 +439,11 @@ func getStateToggleDo(socketKey string, instanceTag string, channel string) (str
 	if err != nil {
 		return value, err
 	}
-	
-	framework.Log(function + " - Decoded Response: "+ value)
+
+	framework.Log(function + " - Decoded Response: " + value)
 
 	// If we got here, the response was good, so successful return with the state indication
-	return `"`+ value + `"`, nil
+	return `"` + value + `"`, nil
 }
 
 //SET Functions
@@ -458,6 +471,7 @@ func setVolume(socketKey string, instanceTag string, channel string, volume stri
 
 	return value, err
 }
+
 // Sets the volume for the specified instance tag and channel. Takes a value from 0-100.
 func setVolumeDo(socketKey string, instanceTag string, channel string, volume string) (string, error) {
 	function := "setVolumeDo"
@@ -483,12 +497,13 @@ func setVolumeDo(socketKey string, instanceTag string, channel string, volume st
 	if err != nil {
 		return value, err
 	}
-	
-	framework.Log(function + " - Decoded Response: "+ value)
+
+	framework.Log(function + " - Decoded Response: " + value)
 
 	// If we got here, the response was good, so successful return with the state indication
 	return "ok", nil
 }
+
 // Sets mute to true or false for the specified instance tag and channel.
 func setAudioMute(socketKey string, instanceTag string, channel string, state string) (string, error) {
 	function := "setAudioMute"
@@ -513,6 +528,7 @@ func setAudioMute(socketKey string, instanceTag string, channel string, state st
 
 	return value, err
 }
+
 // Turns Voice Lift on or off
 func setVoiceLift(socketKey string, instanceTag string, channel string, state string) (string, error) {
 	function := "setVoiceLift"
@@ -546,6 +562,7 @@ func setVoiceLift(socketKey string, instanceTag string, channel string, state st
 
 	return value, err
 }
+
 // Sets mute to true or false for the specified instance tag and channel.
 func setMuteToggleDo(socketKey string, instanceTag string, channel string, state string) (string, error) {
 	function := "setMuteToggleDo"
@@ -567,8 +584,8 @@ func setMuteToggleDo(socketKey string, instanceTag string, channel string, state
 	if err != nil {
 		return value, err
 	}
-	
-	framework.Log(function + " - Decoded Response: "+ value)
+
+	framework.Log(function + " - Decoded Response: " + value)
 
 	// If we got here, the response was good, so successful return with the state indication
 	return "ok", nil
@@ -596,6 +613,7 @@ func setPreset(socketKey string, presetID string) (string, error) {
 
 	return value, err
 }
+
 // Recalls a device preset for the DSP by ID. Preset ID must be greater than 1001.
 func setPresetDo(socketKey string, presetID string) (string, error) {
 	function := "setPresetDo"
@@ -617,12 +635,13 @@ func setPresetDo(socketKey string, presetID string) (string, error) {
 	if err != nil {
 		return value, err
 	}
-	
-	framework.Log(function + " - Decoded Response: "+ value)
+
+	framework.Log(function + " - Decoded Response: " + value)
 
 	// If we got here, the response was good, so successful return with the state indication
 	return "ok", nil
 }
+
 // Sets state to true or false for the specified instance tag and channel.
 func setLogicSelector(socketKey string, instanceTag string, channel string, state string) (string, error) {
 	function := "setLogicSelector"
@@ -647,6 +666,7 @@ func setLogicSelector(socketKey string, instanceTag string, channel string, stat
 
 	return value, err
 }
+
 // Sets state to true for the specified instance tag and channel.
 func setAudioMode(socketKey string, instanceTag string, channel string) (string, error) {
 	function := "setAudioMode"
@@ -672,6 +692,7 @@ func setAudioMode(socketKey string, instanceTag string, channel string) (string,
 
 	return value, err
 }
+
 // Sets state to true or false for the specified instance tag and channel.
 func setStateToggleDo(socketKey string, instanceTag string, channel string, state string) (string, error) {
 	function := "setStateToggleDo"
@@ -693,9 +714,46 @@ func setStateToggleDo(socketKey string, instanceTag string, channel string, stat
 	if err != nil {
 		return value, err
 	}
-	
-	framework.Log(function + " - Decoded Response: "+ value)
+
+	framework.Log(function + " - Decoded Response: " + value)
 
 	// If we got here, the response was good, so successful return with the state indication
 	return "ok", nil
+}
+
+// Reports the health of the device.
+func getHostname(socketKey string) (string, error) {
+	function := "getHostname"
+
+	connected := framework.CheckConnectionsMapExists(socketKey)
+	if !connected {
+		negotiation := loginNegotiation(socketKey)
+		if !negotiation {
+			errMsg := fmt.Sprintf(function + " - h3okxu35 - error connecting")
+			framework.AddToErrors(socketKey, errMsg)
+			return errMsg, errors.New(errMsg)
+		}
+	}
+
+	cmdString := "DEVICE get hostname\r"
+
+	value, err := sendAndValidateResponse(socketKey, cmdString, "command", "none")
+
+	if err != nil {
+		return value, err
+	}
+
+	framework.Log(function + " - Decoded Response: " + value)
+
+	// If we got here, the response was good, so successful return with the state indication
+	return `"` + value + `"`, nil
+}
+
+func healthCheck(socketKey string) (string, error) {
+	returnStr := "true"
+	_, err := getHostname(socketKey)
+	if err != nil && (strings.Contains(err.Error(), "unable to send command") || strings.Contains(err.Error(), "error connecting")) {
+		returnStr = "false"
+	}
+	return `"` + returnStr + `"`, nil
 }

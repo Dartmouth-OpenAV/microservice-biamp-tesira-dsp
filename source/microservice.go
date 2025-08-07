@@ -78,6 +78,9 @@ func doDeviceSpecificGet(socketKey string, setting string, arg1 string, arg2 str
 		case "audiomode":
 			value, err := getAudioMode(socketKey, arg1)
 			return value, err
+		case "healthcheck":
+			value, err := healthCheck(socketKey)
+			return value, err
 	}
 
 	// If we get here, we didn't recognize the setting.  Send an error back to the config writer who had a bad URL.
