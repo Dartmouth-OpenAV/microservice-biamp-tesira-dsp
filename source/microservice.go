@@ -32,6 +32,8 @@ func doDeviceSpecificSet(socketKey string, setting string, arg1 string, arg2 str
 	switch setting {
 		case "volume":
 			return setVolume(socketKey, arg1, arg2, arg3)
+		case "gain":
+			return setGain(socketKey, arg1, arg2)
 		case "audiomute":
 			return setAudioMute(socketKey, arg1, arg2, arg3)
 		case "preset":
@@ -65,6 +67,9 @@ func doDeviceSpecificGet(socketKey string, setting string, arg1 string, arg2 str
 	switch setting {
 		case "volume":
 			value, err := getVolume(socketKey, arg1, arg2)
+			return value, err
+		case "gain":
+			value, err := getGain(socketKey, arg1)
 			return value, err
 		case "audiomute":
 			value, err := getAudioMute(socketKey, arg1, arg2)

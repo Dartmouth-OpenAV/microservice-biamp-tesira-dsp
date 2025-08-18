@@ -261,6 +261,59 @@ func getVolumeDo(socketKey string, instanceTag string, channel string) (string, 
 	return `"` + normalizedVolume + `"`, nil
 }
 
+func getGain(socketKey string, instanceTag string) (string, error) {
+	function := "getGain"
+
+	value := `"unknown"`
+	err := error(nil)
+	maxRetries := 2
+	for maxRetries > 0 {
+		value, err = getGainDo(socketKey, instanceTag)
+		if value == `"unknown"` { // Something went wrong - perhaps try again
+			framework.Log(function + " - fq3sdvc - retrying gain operation")
+			maxRetries--
+			time.Sleep(1 * time.Second)
+			if maxRetries == 0 {
+				errMsg := fmt.Sprintf(function + "f839dk4 - max retries reached")
+				framework.AddToErrors(socketKey, errMsg)
+			}
+		} else { // Succeeded
+			maxRetries = 0
+		}
+	}
+
+	return value, err
+}
+// Gets the gain level of the specified instance tag. Returns a value between 0 and 100.
+func getGainDo(socketKey string, instanceTag string) (string, error) {
+	function := "getGainDo"
+
+	connected := framework.CheckConnectionsMapExists(socketKey)
+	if !connected{
+		negotiation := loginNegotiation(socketKey)
+		if !negotiation {
+			errMsg := fmt.Sprintf(function + " - h3okxu3 - error connecting")
+			framework.AddToErrors(socketKey, errMsg)
+			return errMsg, errors.New(errMsg)
+		}
+	}
+
+	cmdString := instanceTag + " get gain" + "\r"
+
+	value, err := sendAndValidateResponse(socketKey, cmdString, "query", "number")
+
+	if err != nil {
+		return value, err 
+	}
+
+	normalizedGain := unTransformVolume(value)
+
+	framework.Log(function + " - Decoded Response: "+ normalizedGain)
+
+	// If we got here, the response was good, so successful return with the state indication
+	return `"` + normalizedGain + `"`, nil
+}
+
 // Returns true if the channel is muted. False if it is not muted.
 func getAudioMute(socketKey string, instanceTag string, channel string) (string, error) {
 	function := "getAudioMute"
@@ -504,6 +557,60 @@ func setVolumeDo(socketKey string, instanceTag string, channel string, volume st
 	return "ok", nil
 }
 
+func setGain(socketKey string, instanceTag string, gain string) (string, error) {
+	function := "setGain"
+
+	value := "notok"
+	err := error(nil)
+	maxRetries := 2
+	for maxRetries > 0 {
+		value, err = setGainDo(socketKey, instanceTag, gain)
+		if value != "ok" { // Something went wrong - perhaps try again
+			framework.Log(function + " - fq3sdvc - retrying gain operation")
+			maxRetries--
+			time.Sleep(1 * time.Second)
+			if maxRetries == 0 {
+				errMsg := fmt.Sprintf(function + " - fds3nf3 - max retries reached")
+				framework.AddToErrors(socketKey, errMsg)
+			}
+		} else { // Succeeded
+			maxRetries = 0
+		}
+	}
+
+	return value, err
+}
+// Sets the gain for the specified instance tag. Takes a value from 0-100.
+func setGainDo(socketKey string, instanceTag string, gain string) (string, error) {
+	function := "setGainDo"
+	gain = strings.Trim(gain, "\"")
+
+	connected := framework.CheckConnectionsMapExists(socketKey)
+	if !connected {
+		negotiation := loginNegotiation(socketKey)
+		if !negotiation {
+			errMsg := fmt.Sprintf(function + " - h3okxu3 - error connecting")
+			framework.AddToErrors(socketKey, errMsg)
+			return errMsg, errors.New(errMsg)
+		}
+	}
+
+	transformedGain := transformVolume(gain)
+	framework.Log("Transformed Gain: " + transformedGain)
+
+	cmdString := instanceTag + " set gain " + transformedGain + "\r"
+
+	value, err := sendAndValidateResponse(socketKey, cmdString, "command", "none")
+
+	if err != nil {
+		return value, err
+	}
+	
+	framework.Log(function + " - Decoded Response: "+ value)
+
+	// If we got here, the response was good, so successful return with the state indication
+	return "ok", nil
+}
 // Sets mute to true or false for the specified instance tag and channel.
 func setAudioMute(socketKey string, instanceTag string, channel string, state string) (string, error) {
 	function := "setAudioMute"
