@@ -861,9 +861,13 @@ func getHostname(socketKey string) (string, error) {
 
 func healthCheck(socketKey string) (string, error) {
 	returnStr := "true"
-	_, err := getHostname(socketKey)
-	if err != nil && (strings.Contains(err.Error(), "unable to send command") || strings.Contains(err.Error(), "error connecting")) {
+	resp, err := getHostname(socketKey)
+	if err != nil && strings.Contains(err.Error(), "error connecting") {
+		returnStr = "no connection"
+	} else if err != nil {
 		returnStr = "false"
+	} else {
+		returnStr = returnStr + " hostname: " + strings.ReplaceAll(resp, `"`, "")
 	}
 	return `"` + returnStr + `"`, nil
 }
